@@ -1,0 +1,1 @@
+# Pour chaque nouvelle fonction qu'on crée  ou modifier vérifie si les test unitaire de cette fonction existe déjà s oui met les à jours si non crée dans le pon module le fichier de test unitaire puis implémente les différent tests
