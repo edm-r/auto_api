@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: auto-api
+    name: auto-api-prod
     env: python
     plan: free
     region: oregon
