@@ -1,0 +1,326 @@
+{
+  "info": {
+    "_postman_id": "auto-api-auth-collection",
+    "name": "Auto API - Authentification",
+    "description": "Collection d'endpoints pour tester le système d'authentification Auto API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. REGISTER - S'inscrire",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"testuser@example.com\",\n    \"password\": \"TestPassword123!\",\n    \"password2\": \"TestPassword123!\",\n    \"first_name\": \"Test\",\n    \"last_name\": \"User\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/register/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register",
+            ""
+          ]
+        },
+        "description": "Créer un nouvel utilisateur. Tous les champs sont requis."
+      },
+      "response": []
+    },
+    {
+      "name": "2. LOGIN - Se connecter",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.environment.set(\"token\", jsonData.access);",
+              "    pm.environment.set(\"refresh_token\", jsonData.refresh);",
+              "    console.log('Token sauvegardé: ' + jsonData.access.substring(0, 20) + '...');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"TestPassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login",
+            ""
+          ]
+        },
+        "description": "Obtenir les tokens JWT (access et refresh)"
+      },
+      "response": []
+    },
+    {
+      "name": "3. GET /me - Obtenir le profil",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/users/me/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "users",
+            "me",
+            ""
+          ]
+        },
+        "description": "Récupérer les informations du profil utilisateur actuel"
+      },
+      "response": []
+    },
+    {
+      "name": "4. PUT /me - Mettre à jour le profil",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"newemail@example.com\",\n    \"first_name\": \"NewName\",\n    \"last_name\": \"NewLast\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/users/me/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "users",
+            "me",
+            ""
+          ]
+        },
+        "description": "Mettre à jour les informations du profil (tous les champs sont optionnels)"
+      },
+      "response": []
+    },
+    {
+      "name": "5. POST /me/change-password - Changer mot de passe",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"old_password\": \"TestPassword123!\",\n    \"new_password\": \"NewPassword456!\",\n    \"new_password2\": \"NewPassword456!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/users/me/change-password/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "users",
+            "me",
+            "change-password",
+            ""
+          ]
+        },
+        "description": "Changer le mot de passe de l'utilisateur actuel. L'ancien mot de passe doit être correct."
+      },
+      "response": []
+    },
+    {
+      "name": "6. POST /me/logout - Déconnexion",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/users/me/logout/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "users",
+            "me",
+            "logout",
+            ""
+          ]
+        },
+        "description": "Endpoint de déconnexion. Avec JWT, la déconnexion se fait côté client en supprimant le token du stockage."
+      },
+      "response": []
+    },
+    {
+      "name": "7. POST /token/refresh - Renouveler le token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/token/refresh/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "token",
+            "refresh",
+            ""
+          ]
+        },
+        "description": "Obtenir un nouveau token d'accès à partir du refresh token"
+      },
+      "response": []
+    },
+    {
+      "name": "Admin - GET /users - Lister tous les utilisateurs",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/users/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "users",
+            ""
+          ]
+        },
+        "description": "Lister tous les utilisateurs. SEUL L'ADMIN peut accéder à cet endpoint."
+      },
+      "response": []
+    },
+    {
+      "name": "Admin - GET /users/{id} - Récupérer un utilisateur",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/users/2/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "users",
+            "2",
+            ""
+          ]
+        },
+        "description": "Récupérer un utilisateur spécifique par ID. Remplacez 2 par l'ID souhaité."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
