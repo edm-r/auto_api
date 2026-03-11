@@ -3,6 +3,16 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIRequestFactory
 
 
+def pytest_configure():
+    # L'environnement peut forcer `DEBUG=False` (ex: `DEBUG=release`), ce qui active
+    # `SECURE_SSL_REDIRECT` et provoque des 301 en tests (Client/APITestCase).
+    from django.conf import settings
+
+    settings.SECURE_SSL_REDIRECT = False
+    settings.SESSION_COOKIE_SECURE = False
+    settings.CSRF_COOKIE_SECURE = False
+
+
 @pytest.fixture
 def api_request_factory():
     return APIRequestFactory()
