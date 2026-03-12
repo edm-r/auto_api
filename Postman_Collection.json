@@ -1,0 +1,1013 @@
+{
+  "info": {
+    "_postman_id": "auto-api-products-collection",
+    "name": "Auto API - Products Management",
+    "description": "Collection complète pour tester l'API de gestion des produits",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.access);",
+                  "    pm.environment.set('refresh_token', jsonData.refresh);",
+                  "    console.log('Token configuré avec succès');",
+                  "} else {",
+                  "    console.log('Erreur de connexion');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"{{admin_username}}\",\n    \"password\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "description": "Gestion des catégories de produits",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/categories/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", ""]
+            },
+            "description": "Récupère la liste de toutes les catégories (public)"
+          }
+        },
+        {
+          "name": "List Categories - Paginated",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/categories/?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/categories/?search=moteur",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "moteur"
+                }
+              ]
+            },
+            "description": "Recherche de catégories par nom ou description"
+          }
+        },
+        {
+          "name": "Get Category Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/categories/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", "1", ""]
+            },
+            "description": "Récupère les détails d'une catégorie spécifique"
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Moteur\",\n    \"description\": \"Pièces détachées du moteur\",\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/categories/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", ""]
+            },
+            "description": "Crée une nouvelle catégorie (admin seulement)"
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Moteur\",\n    \"description\": \"Pièces détachées du moteur - Mise à jour\",\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/categories/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", "1", ""]
+            },
+            "description": "Modifie une catégorie existante (admin seulement)"
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/categories/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", "1", ""]
+            },
+            "description": "Supprime une catégorie (admin seulement)"
+          }
+        },
+        {
+          "name": "Get Category Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/categories/1/products/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", "1", "products", ""]
+            },
+            "description": "Liste les produits d'une catégorie spécifique"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brands",
+      "description": "Gestion des marques automobiles",
+      "item": [
+        {
+          "name": "List Brands",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/brands/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "brands", ""]
+            },
+            "description": "Liste de toutes les marques"
+          }
+        },
+        {
+          "name": "Search Brands",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/brands/?search=bosch",
+              "host": ["{{base_url}}"],
+              "path": ["products", "brands", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "bosch"
+                }
+              ]
+            },
+            "description": "Recherche de marques par nom ou pays"
+          }
+        },
+        {
+          "name": "Get Brand Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/brands/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "brands", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Bosch\",\n    \"country\": \"Germany\",\n    \"description\": \"Fournisseur de pièces automobiles de qualité\",\n    \"website\": \"https://www.bosch.com\",\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/brands/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "brands", ""]
+            },
+            "description": "Crée une nouvelle marque (admin seulement)"
+          }
+        },
+        {
+          "name": "Update Brand",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Bosch\",\n    \"country\": \"Germany\",\n    \"description\": \"Fournisseur de pièces automobiles de qualité (maj)\",\n    \"website\": \"https://www.bosch.com\",\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/brands/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "brands", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Delete Brand",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/brands/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "brands", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Car Models",
+      "description": "Gestion des modèles de voitures",
+      "item": [
+        {
+          "name": "List Car Models",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/car-models/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "car-models", ""]
+            }
+          }
+        },
+        {
+          "name": "Filter by Brand",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/car-models/?brand=1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "car-models", ""],
+              "query": [
+                {
+                  "key": "brand",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Filtrer les modèles par marque"
+          }
+        },
+        {
+          "name": "Filter by Body Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/car-models/?body_type=sedan",
+              "host": ["{{base_url}}"],
+              "path": ["products", "car-models", ""],
+              "query": [
+                {
+                  "key": "body_type",
+                  "value": "sedan"
+                }
+              ]
+            },
+            "description": "sedan, coupe, suv, hatchback, station_wagon, van, truck, other"
+          }
+        },
+        {
+          "name": "Get Car Model Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/car-models/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "car-models", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Car Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"brand\": 1,\n    \"name\": \"308\",\n    \"year_start\": 2013,\n    \"year_end\": 2021,\n    \"body_type\": \"hatchback\",\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/car-models/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "car-models", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Car Model",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"brand\": 1,\n    \"name\": \"308\",\n    \"year_start\": 2013,\n    \"year_end\": 2022,\n    \"body_type\": \"hatchback\",\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/car-models/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "car-models", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Delete Car Model",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/car-models/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "car-models", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "description": "Gestion complète des produits",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/?page=1",
+              "host": ["{{base_url}}"],
+              "path": ["products", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Liste les produits actifs avec pagination"
+          }
+        },
+        {
+          "name": "Filter by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/?category=1",
+              "host": ["{{base_url}}"],
+              "path": ["products", ""],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Brand",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/?brand=1",
+              "host": ["{{base_url}}"],
+              "path": ["products", ""],
+              "query": [
+                {
+                  "key": "brand",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/?search=plaquettes",
+              "host": ["{{base_url}}"],
+              "path": ["products", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "plaquettes"
+                }
+              ]
+            },
+            "description": "Recherche par nom, description, SKU"
+          }
+        },
+        {
+          "name": "Sort by Price",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/?ordering=-price",
+              "host": ["{{base_url}}"],
+              "path": ["products", ""],
+              "query": [
+                {
+                  "key": "ordering",
+                  "value": "-price"
+                }
+              ]
+            },
+            "description": "Trier par prix: price (bas→haut) ou -price (haut→bas)"
+          }
+        },
+        {
+          "name": "Featured Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/featured/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "featured", ""]
+            },
+            "description": "Produits en vedette"
+          }
+        },
+        {
+          "name": "Low Stock Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/low_stock/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "low_stock", ""]
+            },
+            "description": "Produits en rupture imminente (admin)"
+          }
+        },
+        {
+          "name": "Out of Stock Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/out_of_stock/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "out_of_stock", ""]
+            },
+            "description": "Produits rupture de stock (admin)"
+          }
+        },
+        {
+          "name": "Get Product Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", ""]
+            },
+            "description": "Détails complets avec images et variantes"
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Plaquettes de freins\",\n    \"sku\": \"BRAKE-PAD-001\",\n    \"description\": \"Plaquettes de freins haute performance\",\n    \"category\": 1,\n    \"brand\": 1,\n    \"compatible_car_models_ids\": [1],\n    \"price\": \"49.99\",\n    \"cost\": \"25.00\",\n    \"stock_quantity\": 150,\n    \"low_stock_alert\": 10,\n    \"weight\": \"0.5\",\n    \"dimensions\": \"10 x 8 x 2\",\n    \"warranty_months\": 24,\n    \"is_active\": true,\n    \"is_featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/",
+              "host": ["{{base_url}}"],
+              "path": ["products", ""]
+            },
+            "description": "Crée un nouveau produit (admin seulement)"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Plaquettes de freins\",\n    \"sku\": \"BRAKE-PAD-001\",\n    \"description\": \"Plaquettes de freins haute performance - Mise à jour\",\n    \"category\": 1,\n    \"brand\": 1,\n    \"compatible_car_models_ids\": [1],\n    \"price\": \"49.99\",\n    \"cost\": \"25.00\",\n    \"stock_quantity\": 150,\n    \"low_stock_alert\": 10,\n    \"weight\": \"0.5\",\n    \"dimensions\": \"10 x 8 x 2\",\n    \"warranty_months\": 24,\n    \"is_active\": true,\n    \"is_featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", ""]
+            },
+            "description": "Modifie un produit existant (admin)"
+          }
+        },
+        {
+          "name": "Partial Update Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"stock_quantity\": 200,\n    \"is_featured\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", ""]
+            },
+            "description": "Modification partielle d'un produit"
+          }
+        },
+        {
+          "name": "Update Product Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 200\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/update_stock/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "update_stock", ""]
+            },
+            "description": "Mise à jour rapide du stock (admin)"
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product Images",
+      "description": "Gestion des images de produits",
+      "item": [
+        {
+          "name": "List Product Images",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/1/images/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "images", ""]
+            },
+            "description": "Liste les images d'un produit"
+          }
+        },
+        {
+          "name": "Add Image to Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "alt_text",
+                  "value": "Plaquettes de freins Bosch",
+                  "type": "text"
+                },
+                {
+                  "key": "is_primary",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "display_order",
+                  "value": "0",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/images/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "images", ""]
+            },
+            "description": "Ajoute une image à un produit (admin)\nNote: Cliquer sur le champ image et sélectionner un fichier"
+          }
+        },
+        {
+          "name": "List All Images",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/images/?product_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "images", ""],
+              "query": [
+                {
+                  "key": "product_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Liste les images avec filtrage optionnel"
+          }
+        },
+        {
+          "name": "Get Image Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/images/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "images", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Delete Image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/images/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "images", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product Variants",
+      "description": "Gestion des variantes de produits",
+      "item": [
+        {
+          "name": "List Product Variants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/1/variants/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "variants", ""]
+            },
+            "description": "Liste les variantes d'un produit"
+          }
+        },
+        {
+          "name": "Add Variant to Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Essieu avant\",\n    \"sku\": \"BRAKE-PAD-001-FRONT\",\n    \"attribute_name\": \"position\",\n    \"attribute_value\": \"avant\",\n    \"price_modifier\": \"0.00\",\n    \"stock_quantity\": 100,\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/1/variants/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "1", "variants", ""]
+            },
+            "description": "Ajoute une variante à un produit (admin)\nAttribute types: color, size, version, material, fit, strength, other"
+          }
+        },
+        {
+          "name": "List All Variants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/variants/?product_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["products", "variants", ""],
+              "query": [
+                {
+                  "key": "product_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Liste les variantes avec filtrage"
+          }
+        },
+        {
+          "name": "Filter Variants by Attribute",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/variants/?attribute_name=color",
+              "host": ["{{base_url}}"],
+              "path": ["products", "variants", ""],
+              "query": [
+                {
+                  "key": "attribute_name",
+                  "value": "color"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Variant Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/variants/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "variants", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Variant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Essieu avant\",\n    \"sku\": \"BRAKE-PAD-001-FRONT\",\n    \"attribute_name\": \"position\",\n    \"attribute_value\": \"avant\",\n    \"price_modifier\": \"2.50\",\n    \"stock_quantity\": 150,\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/variants/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "variants", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Delete Variant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/variants/1/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "variants", "1", ""]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "admin_username",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "adminpass123",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
