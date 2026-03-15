@@ -67,9 +67,11 @@ class Order(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         PAID = "paid", "Paid"
+        PAYMENT_FAILED = "payment_failed", "Payment Failed"
         SHIPPED = "shipped", "Shipped"
         DELIVERED = "delivered", "Delivered"
         CANCELED = "canceled", "Canceled"
+        REFUNDED = "refunded", "Refunded"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -106,4 +108,3 @@ class OrderItem(models.Model):
     def save(self, *args, **kwargs):
         self.total_price = (self.unit_price or Decimal("0.00")) * Decimal(self.quantity or 0)
         super().save(*args, **kwargs)
-
