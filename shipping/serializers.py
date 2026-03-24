@@ -3,20 +3,20 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from orders.models import Order
-from .models import Shipment, ShippingAddress
+from customers.models import Address
+from .models import Shipment
 
 
-class ShippingAddressSerializer(serializers.ModelSerializer):
+class AddressSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ShippingAddress
+        model = Address
         fields = [
             "id",
             "full_name",
-            "phone",
-            "address_line1",
-            "address_line2",
+            "phone_number",
+            "address_line",
             "city",
-            "state",
+            "region",
             "postal_code",
             "country",
             "is_default",
@@ -58,7 +58,7 @@ class CreateShipmentSerializer(serializers.Serializer):
         if order is None:
             raise serializers.ValidationError({"order_id": "Order not found."})
 
-        address = ShippingAddress.objects.filter(pk=attrs["address_id"]).select_related("user").first()
+        address = Address.objects.filter(pk=attrs["address_id"]).select_related("user").first()
         if address is None:
             raise serializers.ValidationError({"address_id": "Address not found."})
 
@@ -68,4 +68,3 @@ class CreateShipmentSerializer(serializers.Serializer):
         attrs["order"] = order
         attrs["address"] = address
         return attrs
-
