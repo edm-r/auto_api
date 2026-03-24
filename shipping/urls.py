@@ -1,7 +1,14 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-app_name = 'shipping'
+from .views import ShipmentViewSet, ShippingAddressViewSet
+
+app_name = "shipping"
+
+router = DefaultRouter()
+router.register(r"addresses", ShippingAddressViewSet, basename="shipping-address")
+router.register(r"shipments", ShipmentViewSet, basename="shipment")
 
 urlpatterns = [
-    # Paths will be added when views are created
+    path("", include(router.urls)),
 ]
