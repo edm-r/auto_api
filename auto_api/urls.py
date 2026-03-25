@@ -11,7 +11,9 @@ urlpatterns = [
     path('', root_health, name='root_health'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
+    path('api/profile/', include('customers.urls')),
     path('api/products/', include('products.urls')),
     path('api/', include('orders.urls')),
     path('api/', include('payments.urls')),
+    path('api/shipping/', include('shipping.urls')),
 ]
