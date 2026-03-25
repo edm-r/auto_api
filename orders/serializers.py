@@ -49,6 +49,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    shipping_address_id = serializers.IntegerField(source="shipping_address.id", read_only=True)
 
     class Meta:
         model = Order
@@ -59,6 +60,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "subtotal",
             "tax",
             "shipping_cost",
+            "shipping_address_id",
             "total",
             "created_at",
             "updated_at",
@@ -70,9 +72,10 @@ class OrderSerializer(serializers.ModelSerializer):
 class CheckoutSerializer(serializers.Serializer):
     tax_rate = serializers.DecimalField(max_digits=5, decimal_places=4, required=False, default=Decimal("0.0000"))
     shipping_cost = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=Decimal("0.00"))
+    address_id = serializers.IntegerField(required=False)
 
 
-def create_order_from_cart(*, cart: Cart, user, tax_rate: Decimal, shipping_cost: Decimal) -> Order:
+def create_order_from_cart(*, cart: Cart, user, tax_rate: Decimal, shipping_cost: Decimal, shipping_address=None) -> Order:
     if not cart.is_active:
         raise serializers.ValidationError({"cart": "Cart is not active."})
 
@@ -91,6 +94,7 @@ def create_order_from_cart(*, cart: Cart, user, tax_rate: Decimal, shipping_cost
             subtotal=subtotal,
             tax=tax,
             shipping_cost=shipping_cost,
+            shipping_address=shipping_address,
             total=total,
         )
         OrderItem.objects.bulk_create(
@@ -109,4 +113,3 @@ def create_order_from_cart(*, cart: Cart, user, tax_rate: Decimal, shipping_cost
         cart.save(update_fields=["is_active", "updated_at"])
 
     return order
-

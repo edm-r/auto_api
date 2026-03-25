@@ -1,13 +1,6 @@
 from django.contrib import admin
 
-from .models import Shipment, ShippingAddress
-
-
-@admin.register(ShippingAddress)
-class ShippingAddressAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "full_name", "city", "country", "is_default", "updated_at")
-    list_filter = ("country", "is_default")
-    search_fields = ("full_name", "city", "postal_code", "address_line1", "user__username", "user__email")
+from .models import Shipment
 
 
 @admin.register(Shipment)

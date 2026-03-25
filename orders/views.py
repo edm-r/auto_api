@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from customers.models import Address
 from products.models import Product
 from .models import Cart, CartItem, Order
 from .serializers import (
@@ -86,11 +87,17 @@ class CartViewSet(viewsets.ViewSet):
         serializer = CheckoutSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
 
+        shipping_address = None
+        address_id = serializer.validated_data.get("address_id")
+        if address_id is not None:
+            shipping_address = get_object_or_404(Address, pk=address_id, user=request.user)
+
         order = create_order_from_cart(
             cart=cart,
             user=request.user,
             tax_rate=serializer.validated_data["tax_rate"],
             shipping_cost=serializer.validated_data["shipping_cost"],
+            shipping_address=shipping_address,
         )
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 

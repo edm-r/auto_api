@@ -8,16 +8,17 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from orders.models import Order
-from .models import Shipment, ShippingAddress
-from .serializers import CreateShipmentSerializer, ShipmentSerializer, ShippingAddressSerializer
+from customers.models import Address
+from .models import Shipment
+from .serializers import AddressSerializer, CreateShipmentSerializer, ShipmentSerializer
 
 
 class ShippingAddressViewSet(viewsets.ModelViewSet):
-    serializer_class = ShippingAddressSerializer
+    serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = ShippingAddress.objects.all()
+        qs = Address.objects.all()
         user = self.request.user
         if getattr(user, "is_staff", False):
             return qs
@@ -27,13 +28,13 @@ class ShippingAddressViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             address = serializer.save(user=self.request.user)
             if address.is_default:
-                ShippingAddress.objects.filter(user=address.user).exclude(pk=address.pk).update(is_default=False)
+                Address.objects.filter(user=address.user).exclude(pk=address.pk).update(is_default=False)
 
     def perform_update(self, serializer):
         with transaction.atomic():
             address = serializer.save()
             if address.is_default:
-                ShippingAddress.objects.filter(user=address.user).exclude(pk=address.pk).update(is_default=False)
+                Address.objects.filter(user=address.user).exclude(pk=address.pk).update(is_default=False)
 
 
 class ShipmentViewSet(viewsets.ModelViewSet):

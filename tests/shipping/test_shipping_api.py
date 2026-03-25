@@ -4,8 +4,9 @@ import pytest
 from rest_framework import status
 from rest_framework.test import force_authenticate
 
+from customers.models import Address
 from orders.models import Order
-from shipping.models import Shipment, ShippingAddress
+from shipping.models import Shipment
 from shipping.views import ShipmentViewSet, ShippingAddressViewSet
 
 
@@ -35,11 +36,10 @@ def test_addresses_create_and_list_success(api_request_factory, user):
         "/api/shipping/addresses/",
         {
             "full_name": "John Doe",
-            "phone": "+237600000000",
-            "address_line1": "Rue 1",
-            "address_line2": "",
+            "phone_number": "+237600000000",
+            "address_line": "Rue 1",
             "city": "Douala",
-            "state": "LT",
+            "region": "LT",
             "postal_code": "0000",
             "country": "CM",
             "is_default": True,
@@ -66,14 +66,13 @@ def test_addresses_create_and_list_success(api_request_factory, user):
 
 @pytest.mark.django_db
 def test_addresses_isolation_success(api_request_factory, user, other_user):
-    ShippingAddress.objects.create(
+    Address.objects.create(
         user=user,
         full_name="User One",
-        phone="",
-        address_line1="Addr 1",
-        address_line2="",
+        phone_number="",
+        address_line="Addr 1",
         city="Yaounde",
-        state="",
+        region="",
         postal_code="",
         country="CM",
         is_default=True,
@@ -90,14 +89,13 @@ def test_addresses_isolation_success(api_request_factory, user, other_user):
 
 @pytest.mark.django_db
 def test_shipments_staff_create_and_user_list_success(api_request_factory, staff, user, order):
-    address = ShippingAddress.objects.create(
+    address = Address.objects.create(
         user=user,
         full_name="Buyer",
-        phone="",
-        address_line1="Addr",
-        address_line2="",
+        phone_number="",
+        address_line="Addr",
         city="Douala",
-        state="",
+        region="",
         postal_code="",
         country="CM",
         is_default=True,
@@ -128,14 +126,13 @@ def test_shipments_staff_create_and_user_list_success(api_request_factory, staff
 
 @pytest.mark.django_db
 def test_shipments_mark_shipped_updates_order_success(api_request_factory, staff, user, order):
-    address = ShippingAddress.objects.create(
+    address = Address.objects.create(
         user=user,
         full_name="Buyer",
-        phone="",
-        address_line1="Addr",
-        address_line2="",
+        phone_number="",
+        address_line="Addr",
         city="Douala",
-        state="",
+        region="",
         postal_code="",
         country="CM",
         is_default=True,
@@ -153,4 +150,3 @@ def test_shipments_mark_shipped_updates_order_success(api_request_factory, staff
     assert shipment.status == "shipped"
     assert shipment.shipped_at is not None
     assert order.status == "shipped"
-
