@@ -115,3 +115,33 @@ class OrderItem(models.Model):
     def save(self, *args, **kwargs):
         self.total_price = (self.unit_price or Decimal("0.00")) * Decimal(self.quantity or 0)
         super().save(*args, **kwargs)
+
+
+class PromoCode(models.Model):
+    class DiscountType(models.TextChoices):
+        PERCENT = "percent", "Percent"
+        FIXED = "fixed", "Fixed"
+
+    code = models.CharField(max_length=40, unique=True, db_index=True)
+    discount_type = models.CharField(max_length=10, choices=DiscountType.choices, default=DiscountType.PERCENT)
+    value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["is_active", "expires_at"]),
+        ]
+
+    def __str__(self):
+        return f"PromoCode({self.code})"
+
+    def is_valid(self) -> bool:
+        if not self.is_active:
+            return False
+        if self.expires_at and self.expires_at <= timezone.now():
+            return False
+        return True

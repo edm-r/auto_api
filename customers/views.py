@@ -45,11 +45,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Address.objects.all()
-        user = self.request.user
-        if getattr(user, "is_staff", False):
-            return qs
-        return qs.filter(user=user)
+        return Address.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         with transaction.atomic():
@@ -113,4 +109,3 @@ class OrderHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         if getattr(user, "is_staff", False):
             return Order.objects.all().prefetch_related("items", "items__product")
         return Order.objects.filter(user=user).prefetch_related("items", "items__product")
-

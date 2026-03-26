@@ -7,6 +7,7 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Q, F
 
 from .models import Category, Brand, CarModel, Product, ProductImage, ProductVariant
+from .filters import ProductFilter
 from .serializers import (
     CategorySerializer, CategoryListSerializer,
     BrandSerializer,
@@ -29,6 +30,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     - DELETE /api/products/categories/{id}/ - Supprimer (admin)
     """
     queryset = Category.objects.all()
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
@@ -69,6 +71,7 @@ class BrandViewSet(viewsets.ModelViewSet):
     - DELETE /api/products/brands/{id}/ - Supprimer (admin)
     """
     queryset = Brand.objects.all()
+    pagination_class = None
     serializer_class = BrandSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'country', 'description']
@@ -112,6 +115,7 @@ class CarModelViewSet(viewsets.ModelViewSet):
     - DELETE /api/products/car-models/{id}/ - Supprimer (admin)
     """
     serializer_class = CarModelSerializer
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['brand', 'body_type', 'is_active']
     search_fields = ['name', 'brand__name']
@@ -163,7 +167,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     - ?search=terme - Recherche textuelle
     """
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'brand', 'compatible_car_models', 'is_active', 'is_featured']
+    filterset_class = ProductFilter
     search_fields = ['name', 'description', 'sku', 'category__name']
     ordering_fields = ['price', 'stock_quantity', 'rating', 'created_at']
     ordering = ['-created_at']
@@ -207,6 +211,18 @@ class ProductViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Ajoute l'utilisateur au créateur du produit"""
         serializer.save(created_by=self.request.user)
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def suggest(self, request):
+        q = (request.query_params.get('q') or '').strip()
+        if not q:
+            return Response([])
+
+        qs = self.get_queryset().filter(
+            Q(name__icontains=q) | Q(sku__icontains=q)
+        ).order_by('-is_featured', 'name')[:8]
+
+        return Response(list(qs.values('id', 'name', 'sku', 'price')))
 
     @action(detail=True, methods=['get', 'post'])
     def images(self, request, pk=None):
