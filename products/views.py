@@ -163,7 +163,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     - ?search=terme - Recherche textuelle
     """
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'brand', 'is_active', 'is_featured']
+    filterset_fields = ['category', 'brand', 'compatible_car_models', 'is_active', 'is_featured']
     search_fields = ['name', 'description', 'sku', 'category__name']
     ordering_fields = ['price', 'stock_quantity', 'rating', 'created_at']
     ordering = ['-created_at']
