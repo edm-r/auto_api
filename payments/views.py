@@ -37,28 +37,71 @@ class CreateCheckoutSessionView(APIView):
             return Response({"detail": "Order has no items."}, status=status.HTTP_400_BAD_REQUEST)
 
         line_items = []
+        invalid_items = []
         for item in order_items:
+            unit_amount = int((item.unit_price * Decimal("100")).quantize(Decimal("1")))
+            if unit_amount <= 0:
+                invalid_items.append(
+                    {
+                        "order_item_id": item.id,
+                        "product_id": item.product_id,
+                        "product_name": getattr(item.product, "name", ""),
+                        "unit_price": str(item.unit_price),
+                    }
+                )
+                continue
             line_items.append(
                 {
                     "price_data": {
                         "currency": currency,
-                        "unit_amount": int((item.unit_price * Decimal("100")).quantize(Decimal("1"))),
+                        "unit_amount": unit_amount,
                         "product_data": {"name": item.product.name},
                     },
                     "quantity": item.quantity,
                 }
             )
 
+        if invalid_items:
+            return Response(
+                {
+                    "detail": "Some items have an invalid unit price for Stripe.",
+                    "invalid_items": invalid_items,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             service = StripeService()
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        session = service.create_checkout_session(
-            order_id=order.id,
-            line_items=line_items,
-            success_url=serializer.validated_data["success_url"],
-            cancel_url=serializer.validated_data["cancel_url"],
-        )
+
+        try:
+            session = service.create_checkout_session(
+                order_id=order.id,
+                line_items=line_items,
+                success_url=serializer.validated_data["success_url"],
+                cancel_url=serializer.validated_data["cancel_url"],
+            )
+        except Exception as exc:
+            # Best-effort: treat Stripe errors as client errors, everything else as upstream failure.
+            try:
+                import stripe  # type: ignore
+
+                if isinstance(exc, stripe.error.StripeError):
+                    detail = getattr(exc, "user_message", None) or str(exc) or "Stripe error."
+                    return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception:
+                pass
+            return Response(
+                {"detail": "Failed to create Stripe checkout session."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if not session.url:
+            return Response(
+                {"detail": "Stripe did not return a checkout URL."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         txn = PaymentTransaction.objects.create(
             order=order,

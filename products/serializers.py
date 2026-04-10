@@ -265,7 +265,7 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'sku', 'category', 'category_name',
             'brand', 'brand_name', 'price', 'stock_quantity',
-            'is_in_stock', 'rating', 'is_featured', 'primary_image'
+            'is_in_stock', 'rating', 'is_featured', 'is_active', 'primary_image'
         ]
         read_only_fields = ['id', 'stock_quantity', 'is_in_stock', 'rating']
 
