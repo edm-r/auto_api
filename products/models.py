@@ -249,6 +249,11 @@ class Product(models.Model):
         blank=True,
         help_text="Coût de revient"
     )
+    stock_quantity = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Quantité en stock"
+    )
     low_stock_alert = models.IntegerField(
         default=10,
         validators=[MinValueValidator(0)],
@@ -325,13 +330,8 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     @property
-    def stock_quantity(self):
-        """Calcul dynamique du stock total selon l'inventaire"""
-        return sum(inv.quantity for inv in self.inventories.all())
-
-    @property
     def is_low_stock(self):
-        """Vérifie si le stock total est bas"""
+        """Vérifie si le stock est bas"""
         return self.stock_quantity <= self.low_stock_alert
 
     @property
@@ -441,6 +441,11 @@ class ProductVariant(models.Model):
         default=0,
         help_text="Modification de prix par rapport au produit principal"
     )
+    stock_quantity = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Quantité en stock pour cette variante"
+    )
     
     # Métadonnées
     is_active = models.BooleanField(
@@ -468,142 +473,163 @@ class ProductVariant(models.Model):
         return self.product.price + self.price_modifier
 
     @property
-    def stock_quantity(self):
-        return sum(inv.quantity for inv in self.inventories.all())
-
-    @property
     def is_in_stock(self):
         """Vérifie si la variante est en stock"""
         return self.stock_quantity > 0
 
 
 class Warehouse(models.Model):
-    """
-    Entrepôt de stockage.
-    """
+    """Entrepôts de stockage"""
     name = models.CharField(
-        max_length=100,
-        unique=True,
+        max_length=200,
         help_text="Nom de l'entrepôt"
+    )
+    slug = models.SlugField(
+        unique=True,
+        help_text="Slug de l'entrepôt"
     )
     location = models.CharField(
         max_length=255,
+        help_text="Localisation de l'entrepôt"
+    )
+    address = models.TextField(
         blank=True,
-        help_text="Adresse ou localisation de l'entrepôt"
+        help_text="Adresse complète"
+    )
+    capacity = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Capacité de stockage en unités"
+    )
+    manager_name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Nom du responsable"
+    )
+    manager_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Téléphone du responsable"
+    )
+    manager_email = models.EmailField(
+        blank=True,
+        help_text="Email du responsable"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="L'entrepôt est-il actif?"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['slug']),
+            models.Index(fields=['is_active']),
+        ]
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.location})"
 
 
 class Inventory(models.Model):
-    """
-    Stock disponible pour un produit/variante dans un entrepôt spécifique.
-    """
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        related_name='inventories',
-        null=True,
-        blank=True,
-        help_text="Produit principal"
-    )
-    variant = models.ForeignKey(
-        ProductVariant,
-        on_delete=models.CASCADE,
-        related_name='inventories',
-        null=True,
-        blank=True,
-        help_text="Variante du produit (si applicable)"
-    )
+    """Inventaire produit par entrepôt"""
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.CASCADE,
         related_name='inventories',
         help_text="Entrepôt"
     )
-    quantity = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-        help_text="Quantité physique disponible"
-    )
-    reserved_quantity = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-        help_text="Quantité réservée par des commandes non finalisées"
-    )
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = [['warehouse', 'product', 'variant']]
-        verbose_name_plural = 'Inventories'
-
-    def __str__(self):
-        target = self.variant if self.variant else self.product
-        return f"{self.warehouse.name} - {target}: {self.quantity}"
-
-    @property
-    def available_quantity(self):
-        return max(0, self.quantity - self.reserved_quantity)
-
-
-class StockMovement(models.Model):
-    """
-    Historique des mouvements de stock.
-    """
-    class MovementType(models.TextChoices):
-        IN = 'IN', 'Entrée'
-        OUT = 'OUT', 'Sortie'
-        ADJUSTMENT = 'ADJUSTMENT', 'Ajustement manuel'
-
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
-        related_name='stock_movements',
-        null=True,
-        blank=True
+        related_name='inventories',
+        help_text="Produit"
     )
-    variant = models.ForeignKey(
-        ProductVariant,
-        on_delete=models.CASCADE,
-        related_name='stock_movements',
-        null=True,
-        blank=True
+    quantity = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Quantité en stock"
     )
-    warehouse = models.ForeignKey(
-        Warehouse,
+    reorder_level = models.IntegerField(
+        default=10,
+        validators=[MinValueValidator(0)],
+        help_text="Seuil de réapprovision"
+    )
+    last_stock_check = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date du dernier contrôle de stock"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['warehouse', 'product']
+        unique_together = ['warehouse', 'product']
+        indexes = [
+            models.Index(fields=['warehouse', 'product']),
+            models.Index(fields=['quantity']),
+        ]
+        verbose_name_plural = 'Inventories'
+
+    def __str__(self):
+        return f"{self.product.name} - {self.warehouse.name} ({self.quantity} unités)"
+
+    @property
+    def needs_reorder(self):
+        """Vérifie si le stock doit être réapprovisionné"""
+        return self.quantity <= self.reorder_level
+
+
+class StockMovement(models.Model):
+    """Mouvements de stock (entrées/sorties)"""
+    MOVEMENT_TYPES = [
+        ('IN', 'Entrée'),
+        ('OUT', 'Sortie'),
+        ('TRANSFER', 'Transfert'),
+        ('ADJUSTMENT', 'Ajustement'),
+        ('RETURN', 'Retour'),
+    ]
+
+    inventory = models.ForeignKey(
+        Inventory,
         on_delete=models.CASCADE,
-        related_name='stock_movements'
+        related_name='movements',
+        help_text="Inventaire affecté"
     )
     movement_type = models.CharField(
         max_length=20,
-        choices=MovementType.choices,
+        choices=MOVEMENT_TYPES,
         help_text="Type de mouvement"
     )
     quantity = models.IntegerField(
-        help_text="Quantité (positive pour IN, négative pour OUT)"
+        validators=[MinValueValidator(0)],
+        help_text="Quantité"
     )
     reference = models.CharField(
-        max_length=255,
+        max_length=100,
         blank=True,
-        help_text="Référence externe (Order ID, cause d'ajustement...)"
+        help_text="Numéro de référence (commande, facture, etc.)"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="Notes additionnelles"
+    )
+    user = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Utilisateur responsable du mouvement"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['inventory', 'created_at']),
+            models.Index(fields=['movement_type']),
+        ]
 
     def __str__(self):
-        sign = "+" if self.quantity > 0 else ""
-        return f"{self.get_movement_type_display()} {sign}{self.quantity} ({self.warehouse.name})"
+        return f"{self.get_movement_type_display()} - {self.quantity} ({self.reference})"
