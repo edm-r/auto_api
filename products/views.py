@@ -6,15 +6,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Q, F
 
-from .models import Category, Brand, CarModel, Product, ProductImage, ProductVariant
-from .filters import ProductFilter
+from .models import Category, Brand, CarModel, Product, ProductImage, ProductVariant, Warehouse, Inventory, StockMovement
 from .serializers import (
     CategorySerializer, CategoryListSerializer,
     BrandSerializer,
     CarModelSerializer, CarModelSimpleSerializer,
     ProductDetailSerializer, ProductSimpleSerializer, ProductCreateUpdateSerializer,
     ProductImageSerializer, ProductImageDetailSerializer,
-    ProductVariantSerializer
+    ProductVariantSerializer,
+    WarehouseSerializer, InventorySerializer, StockMovementSerializer
 )
 
 
@@ -296,34 +296,62 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
-    def update_stock(self, request, pk=None):
-        """Met à jour le stock du produit"""
+    def adjust_stock(self, request, pk=None):
+        """Ajuste manuel du stock avec création d'un mouvement"""
         if not request.user.is_staff:
-            return Response(
-                {'error': 'Permission denied'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         
         product = self.get_object()
-        quantity = request.data.get('quantity')
+        warehouse_id = request.data.get('warehouse_id')
+        quantity_change = request.data.get('quantity_change')
+        reference = request.data.get('reference', 'Ajustement manuel')
         
-        if quantity is None:
+        if warehouse_id is None or quantity_change is None:
             return Response(
-                {'error': 'quantity field is required'},
+                {'error': 'warehouse_id and quantity_change are required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+            
         try:
-            quantity = int(quantity)
-            product.stock_quantity = quantity
-            product.save()
+            quantity_change = int(quantity_change)
+            warehouse = get_object_or_404(Warehouse, pk=warehouse_id)
+            
+            from django.db import transaction
+            with transaction.atomic():
+                inventory, _ = Inventory.objects.select_for_update().get_or_create(
+                    product=product,
+                    warehouse=warehouse,
+                    defaults={'quantity': 0}
+                )
+                
+                # S'assurer que le stock final n'est pas négatif
+                if inventory.quantity + quantity_change < 0:
+                    return Response(
+                        {'error': 'Le stock résultant ne peut pas être négatif'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                    
+                inventory.quantity += quantity_change
+                inventory.save()
+                
+                # Enregistrer le mouvement
+                StockMovement.objects.create(
+                    product=product,
+                    warehouse=warehouse,
+                    movement_type=StockMovement.MovementType.ADJUSTMENT,
+                    quantity=quantity_change,
+                    reference=reference,
+                    created_by=request.user
+                )
+
             return Response({
                 'id': product.id,
-                'stock_quantity': product.stock_quantity
+                'total_stock_quantity': product.stock_quantity,
+                'warehouse_stock': inventory.quantity
             })
         except ValueError:
             return Response(
-                {'error': 'quantity must be an integer'},
+                {'error': 'quantity_change must be an integer'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -376,3 +404,33 @@ class ProductVariantViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [IsAdminUser]
         return [permission() for permission in permission_classes]
+
+
+class WarehouseViewSet(viewsets.ModelViewSet):
+    """ViewSet pour la gestion des entrepôts"""
+    queryset = Warehouse.objects.all()
+    serializer_class = WarehouseSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'location']
+
+
+class InventoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet en lecture seule pour voir l'inventaire filtré"""
+    queryset = Inventory.objects.all().select_related('product', 'warehouse', 'variant')
+    serializer_class = InventorySerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['product', 'warehouse', 'variant']
+
+
+class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet en lecture seule pour voir l'historique des mouvements"""
+    queryset = StockMovement.objects.all().select_related('product', 'warehouse', 'variant', 'created_by')
+    serializer_class = StockMovementSerializer
+    permission_classes = [IsAdminUser]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['product', 'warehouse', 'movement_type']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
+
