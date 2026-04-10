@@ -4,12 +4,17 @@ Script de test pour valider les endpoints de l'API Produits
 Run: python test_products_endpoints.py
 """
 
+import os
 import requests
 import json
 import time
 from datetime import datetime
 
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = os.environ.get("API_BASE_URL")
+if not BASE_URL:
+    raise RuntimeError(
+        "Missing API_BASE_URL. Example: API_BASE_URL=http://localhost:8000/api"
+    )
 ADMIN_CREDS = {"username": "admin", "password": "adminpass123"}
 
 # Couleurs pour l'affichage
