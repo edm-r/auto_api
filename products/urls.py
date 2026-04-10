@@ -10,9 +10,9 @@ router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'brands', BrandViewSet, basename='brand')
 router.register(r'car-models', CarModelViewSet, basename='car-model')
-router.register(r'', ProductViewSet, basename='product')
 router.register(r'images', ProductImageViewSet, basename='product-image')
 router.register(r'variants', ProductVariantViewSet, basename='product-variant')
+router.register(r'', ProductViewSet, basename='product')
 
 urlpatterns = [
     path('', include(router.urls)),
