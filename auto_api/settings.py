@@ -187,6 +187,10 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
+# Fichiers statiques collectés pendant le build Render et servis par WhiteNoise.
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
