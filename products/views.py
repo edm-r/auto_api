@@ -4,8 +4,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render, get_object_or_404
-from django.db.models import Q, F
+from django.db.models import Q, F, OuterRef, Subquery, Sum, Value, IntegerField
+from django.db.models.functions import Coalesce
 
+from .filters import ProductFilter
 from .models import Category, Brand, CarModel, Product, ProductImage, ProductVariant, Warehouse, Inventory, StockMovement
 from .serializers import (
     CategorySerializer, CategoryListSerializer,
@@ -175,8 +177,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filtre par défaut: produits actifs (sauf staff)"""
         queryset = Product.objects.prefetch_related(
-            'images', 'variants', 'compatible_car_models'
+            'images', 'variants', 'compatible_car_models', 'inventories'
         ).select_related('category', 'brand', 'created_by')
+        stock_totals = Inventory.objects.filter(product_id=OuterRef('pk')).order_by().values(
+            'product_id'
+        ).annotate(total=Sum('quantity')).values('total')
+        # Alias SQL pour filtrer/trier sans écraser la propriété calculée du modèle.
+        queryset = queryset.alias(stock_quantity=Coalesce(
+            Subquery(stock_totals, output_field=IntegerField()), Value(0)
+        ))
         
         # Filtre pour ignorer les produits inactifs par défaut
         # Important: les admins doivent pouvoir modifier un produit inactif (ex: ajouter une variante).
@@ -321,6 +330,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 inventory, _ = Inventory.objects.select_for_update().get_or_create(
                     product=product,
                     warehouse=warehouse,
+                    variant=None,
                     defaults={'quantity': 0}
                 )
                 
@@ -346,7 +356,9 @@ class ProductViewSet(viewsets.ModelViewSet):
 
             return Response({
                 'id': product.id,
-                'total_stock_quantity': product.stock_quantity,
+                'total_stock_quantity': Inventory.objects.filter(product=product).aggregate(
+                    total=Sum('quantity', default=0)
+                )['total'],
                 'warehouse_stock': inventory.quantity
             })
         except ValueError:
@@ -433,4 +445,3 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['product', 'warehouse', 'movement_type']
     ordering_fields = ['created_at']
     ordering = ['-created_at']
-

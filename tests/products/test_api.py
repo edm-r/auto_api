@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from products.models import Category, Brand, CarModel, Product, ProductImage, ProductVariant
+from products.models import Category, Brand, CarModel, Product, ProductImage, ProductVariant, Warehouse, Inventory, StockMovement
 from products.serializers import (
     CategorySerializer, BrandSerializer, CarModelSerializer,
     ProductDetailSerializer, ProductVariantSerializer
@@ -115,8 +115,9 @@ class ProductModelTest(TestCase):
             brand=self.brand,
             price=49.99,
             cost=25.00,
-            stock_quantity=100
         )
+        self.warehouse = Warehouse.objects.create(name="Principal")
+        self.inventory = Inventory.objects.create(product=self.product, warehouse=self.warehouse, quantity=100)
 
     def test_product_creation(self):
         """Test la création d'un produit"""
@@ -126,7 +127,8 @@ class ProductModelTest(TestCase):
     def test_product_is_in_stock(self):
         """Test la propriété is_in_stock"""
         self.assertTrue(self.product.is_in_stock)
-        self.product.stock_quantity = 0
+        self.inventory.quantity = 0
+        self.inventory.save()
         self.assertFalse(self.product.is_in_stock)
 
     def test_product_discount_percentage(self):
@@ -136,7 +138,8 @@ class ProductModelTest(TestCase):
 
     def test_product_low_stock_alert(self):
         """Test l'alerte stock bas"""
-        self.product.stock_quantity = 5
+        self.inventory.quantity = 5
+        self.inventory.save()
         self.product.low_stock_alert = 10
         self.assertTrue(self.product.is_low_stock)
 
@@ -196,8 +199,9 @@ class ProductVariantModelTest(TestCase):
             sku="BRAKE-001-FRONT",
             attribute_name="position",
             attribute_value="avant",
-            stock_quantity=50
         )
+        warehouse = Warehouse.objects.create(name="Principal")
+        Inventory.objects.create(variant=variant, warehouse=warehouse, quantity=50)
         self.assertEqual(variant.name, "Essieu avant")
         self.assertTrue(variant.is_in_stock)
 
@@ -210,7 +214,6 @@ class ProductVariantModelTest(TestCase):
             attribute_name="version",
             attribute_value="premium",
             price_modifier=10.00,
-            stock_quantity=20
         )
         expected_price = self.product.price + variant.price_modifier
         self.assertEqual(variant.final_price, expected_price)
@@ -240,8 +243,7 @@ class CategoryAPITest(APITestCase):
         """Test la liste des catégories"""
         response = self.client.get('/api/products/categories/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['count'], 1)
-        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(len(response.data), 1)
 
     def test_retrieve_category(self):
         """Test la récupération d'une catégorie"""
@@ -298,7 +300,7 @@ class BrandAPITest(APITestCase):
         Brand.objects.create(name="Michelin", country="France")
         response = self.client.get('/api/products/brands/?search=Michelin')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(any(b['name'] == 'Michelin' for b in response.data['results']))
+        self.assertTrue(any(b['name'] == 'Michelin' for b in response.data))
 
 
 class CarModelAPITest(APITestCase):
@@ -358,9 +360,10 @@ class ProductAPITest(APITestCase):
             brand=self.brand,
             price=49.99,
             cost=25.00,
-            stock_quantity=100,
             created_by=self.user
         )
+        self.warehouse = Warehouse.objects.create(name="Principal")
+        self.inventory = Inventory.objects.create(product=self.product, warehouse=self.warehouse, quantity=100)
 
     def test_list_products(self):
         """Test la liste des produits"""
@@ -393,7 +396,6 @@ class ProductAPITest(APITestCase):
             'category': self.category.id,
             'brand': self.brand.id,
             'price': 15.99,
-            'stock_quantity': 50
         }
         response = self.client.post('/api/products/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -407,7 +409,6 @@ class ProductAPITest(APITestCase):
             'description': 'Description',
             'category': self.category.id,
             'price': 20.00,
-            'stock_quantity': 50
         }
         response = self.client.post('/api/products/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -422,10 +423,75 @@ class ProductAPITest(APITestCase):
     def test_update_stock(self):
         """Test la mise à jour du stock"""
         self.client.force_authenticate(user=self.user)
-        data = {'quantity': 200}
-        response = self.client.post(f'/api/products/{self.product.id}/update_stock/', data)
+        data = {'warehouse_id': self.warehouse.id, 'quantity_change': 100}
+        response = self.client.post(f'/api/products/{self.product.id}/adjust_stock/', data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['stock_quantity'], 200)
+        self.assertEqual(response.data['total_stock_quantity'], 200)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 200)
+        movement = StockMovement.objects.get(product=self.product)
+        self.assertEqual(movement.quantity, 100)
+        self.assertEqual(movement.created_by, self.user)
+
+    def test_stock_filters_and_ordering(self):
+        """Le filtrage et le tri utilisent le stock cumulé des entrepôts."""
+        empty = Product.objects.create(
+            name='Sans stock', sku='EMPTY-001', category=self.category, price='10.00'
+        )
+        low = Product.objects.create(
+            name='Stock bas', sku='LOW-001', category=self.category,
+            price='20.00', low_stock_alert=10
+        )
+        Inventory.objects.create(product=low, warehouse=self.warehouse, quantity=4)
+        second = Warehouse.objects.create(name='Secondaire')
+        Inventory.objects.create(product=low, warehouse=second, quantity=7)
+
+        response = self.client.get('/api/products/low_stock/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([p['id'] for p in response.data], [empty.id])
+
+        response = self.client.get('/api/products/out_of_stock/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([p['id'] for p in response.data], [empty.id])
+
+        for ordering, expected in [
+            ('stock_quantity', [empty.id, low.id, self.product.id]),
+            ('-stock_quantity', [self.product.id, low.id, empty.id]),
+        ]:
+            response = self.client.get('/api/products/', {'ordering': ordering})
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual([p['id'] for p in response.data['results']], expected)
+
+        response = self.client.get('/api/products/', {'price_min': 15, 'price_max': 25})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([p['id'] for p in response.data['results']], [low.id])
+
+    def test_adjust_stock_preserves_variant_inventory(self):
+        variant = ProductVariant.objects.create(
+            product=self.product, name='Avant', sku='VAR-001',
+            attribute_name='position', attribute_value='avant'
+        )
+        variant_inventory = Inventory.objects.create(
+            product=self.product, variant=variant, warehouse=self.warehouse, quantity=5
+        )
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(f'/api/products/{self.product.id}/adjust_stock/', {
+            'warehouse_id': self.warehouse.id, 'quantity_change': 10
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total_stock_quantity'], 115)
+        variant_inventory.refresh_from_db()
+        self.assertEqual(variant_inventory.quantity, 5)
+
+    def test_adjust_stock_rejects_negative_stock(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(f'/api/products/{self.product.id}/adjust_stock/', {
+            'warehouse_id': self.warehouse.id, 'quantity_change': -101
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.inventory.refresh_from_db()
+        self.assertEqual(self.inventory.quantity, 100)
+        self.assertFalse(StockMovement.objects.filter(product=self.product).exists())
 
 
 class ProductVariantAPITest(APITestCase):
@@ -457,7 +523,6 @@ class ProductVariantAPITest(APITestCase):
             'sku': 'BRAKE-001-F',
             'attribute_name': 'other',
             'attribute_value': 'front',
-            'stock_quantity': 50
         }
         response = self.client.post(f'/api/products/{self.product.id}/variants/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -473,7 +538,6 @@ class ProductVariantAPITest(APITestCase):
             'sku': 'BRAKE-001-R',
             'attribute_name': 'other',
             'attribute_value': 'rear',
-            'stock_quantity': 25
         }
         response = self.client.post(f'/api/products/{self.product.id}/variants/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

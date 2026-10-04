@@ -7,7 +7,7 @@ from rest_framework.test import force_authenticate
 
 from orders.models import Cart, Order
 from orders.views import CartItemViewSet, CartViewSet, OrderViewSet
-from products.models import Brand, Category, Product
+from products.models import Brand, Category, Product, Warehouse, Inventory
 
 
 def _add_session_to_request(request):
@@ -21,15 +21,17 @@ def _add_session_to_request(request):
 def product(db):
     category = Category.objects.create(name="CartCat")
     brand = Brand.objects.create(name="CartBrand")
-    return Product.objects.create(
+    product = Product.objects.create(
         name="Cart Product",
         sku="CART-001",
         description="Cart product",
         category=category,
         brand=brand,
         price=Decimal("10.00"),
-        stock_quantity=100,
     )
+    warehouse = Warehouse.objects.create(name="Principal")
+    Inventory.objects.create(product=product, warehouse=warehouse, quantity=100)
+    return product
 
 
 @pytest.mark.django_db

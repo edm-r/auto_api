@@ -7,7 +7,7 @@ from rest_framework.test import force_authenticate
 from customers.models import UserProfile, VehiclePreference, WishList
 from customers.views import AddressViewSet, OrderHistoryViewSet, ProfileMeView, VehiclePreferenceViewSet, WishListViewSet
 from orders.models import Order
-from products.models import Brand, Category, Product
+from products.models import Brand, Category, Product, Warehouse, Inventory
 
 
 @pytest.fixture
@@ -24,15 +24,17 @@ def other_user(db, make_user):
 def product(db):
     category = Category.objects.create(name="WishCat")
     brand = Brand.objects.create(name="WishBrand")
-    return Product.objects.create(
+    product = Product.objects.create(
         name="Wishlist Product",
         sku="WISH-001",
         description="Wishlist product",
         category=category,
         brand=brand,
         price=Decimal("10.00"),
-        stock_quantity=10,
     )
+    warehouse = Warehouse.objects.create(name="Principal")
+    Inventory.objects.create(product=product, warehouse=warehouse, quantity=10)
+    return product
 
 
 @pytest.mark.django_db

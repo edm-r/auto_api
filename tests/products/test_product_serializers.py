@@ -19,7 +19,6 @@ def test_create_success(api_request_factory, make_user):
         "brand": brand.id,
         "compatible_car_models_ids": [car_model.id],
         "price": "15.99",
-        "stock_quantity": 50,
     }
     request = api_request_factory.post("/api/products/", payload, format="json")
     request.user = user
@@ -45,7 +44,6 @@ def test_create_edge_case(api_request_factory, make_user):
         "sku": "BRAKE-UT-001",
         "category": category.id,
         "price": "49.99",
-        "stock_quantity": 10,
     }
     request = api_request_factory.post("/api/products/", payload, format="json")
     request.user = user

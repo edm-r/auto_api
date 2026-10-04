@@ -12,7 +12,7 @@ from payments.views import (
     RefundView,
     StripeWebhookView,
 )
-from products.models import Brand, Category, Product
+from products.models import Brand, Category, Product, Warehouse, Inventory
 
 
 @pytest.fixture
@@ -27,8 +27,9 @@ def order_with_item(db, make_user):
         category=category,
         brand=brand,
         price=Decimal("12.34"),
-        stock_quantity=100,
     )
+    warehouse = Warehouse.objects.create(name="Principal")
+    Inventory.objects.create(product=product, warehouse=warehouse, quantity=100)
     order = Order.objects.create(
         user=user,
         subtotal=Decimal("12.34"),
